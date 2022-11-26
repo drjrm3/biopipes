@@ -7,7 +7,10 @@ See https://pysam.readthedocs.io/en/latest/api.html for reference.
 import argparse
 import pysam
 import multiprocessing
+import shlex
+import subprocess
 import sys
+import numpy as np
 
 def get_args():
     """ Get CLI arguments.
@@ -69,7 +72,23 @@ def samtools_depth(args):
         errlines (str): Stderr.
     """
 
-    return 0, "OUT: " + args, "ERR: " + args
+    command = shlex.split(f"samtools depth {args}")
+
+    proc = subprocess.run(command, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, shell=False)
+
+    stdout_str = ""
+    if proc.stdout:
+        stdout_str = proc.stdout.decode("utf-8")
+    return_code = proc.returncode
+
+    # TODO: Optimize packed format here later
+    # chrom.pos:
+    #  - chrom:  5 bits (max 32, 1-22, X, Y, M)
+    #  - pos:   28 bits (max ~536M, chr1 ~ 270M)
+    #  - depth: 20 bits (max ~1M)
+
+    return return_code, stdout_str
 
 def gen_coverage(bamfile, outfile, chrom_lens, processes):
     """ Generate coverage file *using samtools*. Note - move to using pysam
@@ -85,20 +104,18 @@ def gen_coverage(bamfile, outfile, chrom_lens, processes):
     # For now set all regions to just chromosomes.
     regions = chrom_lens.keys()
 
+    rc, stdout = samtools_depth(f"-@ 2 -r chr1 {bamfile}")
+    with open("samtools_out", 'w') as fout:
+        print(stdout, file=fout)
+    return 
+
     args = []
     for region in ["chrM", "chr9"]:
-        args.append([f"-r {region} {bamfile}"])
+        args.append([f"-a -r {region} {bamfile}"])
 
     with multiprocessing.Pool(processes=processes) as pool:
         output = pool.starmap(samtools_depth, args)
         print(output)
-
-
-
-
-
-
-
 
 
 def main():
