@@ -1,2 +1,4 @@
 *.bed*
 cmds.txt
+*.out
+*.coverage
