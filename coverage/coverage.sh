@@ -38,8 +38,8 @@ while [[ ! -z $1 ]]; do
         -i | --input-bam)        BAMFILE="$2"        ; shift 2 ;;
         -o | --output-cov)       COVFILE="$2"        ; shift 2 ;;
         -s | --samtools-threads) STHREADS="$2"       ; shift 2 ;; 
-        -f | --filters)          CHROM_FILTERS="$2" ; shift 2 ;; 
-        -p | --processes)        PROCS="$2"          ; shift   ;; 
+        -f | --filters)          CHROM_FILTERS="$2"  ; shift 2 ;; 
+        -p | --processes)        PROCS="$2"          ; shift 2 ;; 
         -h | --help) usage && exit 1 ;;
         --) shift; break ;;
         *) echo "Unexpected option: $1 - this should not happen."
@@ -62,4 +62,5 @@ while read CHROM; do
     echo "samtools depth -@ $STHREADS -r $CHROM $BAMFILE > $COVFILE.$CHROM.tmp"
 done < <(samtools view -H $BAMFILE | grep '@SQ' | awk '{print $2}' | sed 's/SN://g') > cmds.txt
 
+parallel -j $PROCS < cmds.txt
 

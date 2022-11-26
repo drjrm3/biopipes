@@ -121,8 +121,6 @@ def main():
     """ Main entry point. """
     args = get_args()
 
-    print(pysam.__file__)
-
     bamfile = pysam.AlignmentFile(args.input_bamfile, "rb")
     filter_list=["chrUn", "_alt", "_random"]
 

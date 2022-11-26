@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 
-#python3 coverage.py -b /nvme/SRS290927.bam create_beds/hg38_chrlens.txt 100 SRS290927.coverage
-python3 coverage.py \
-    --input-bamfile /nvme/SRS290927.bam \
-    --output-coverage-file SRS290927.coverage \
-    --procs 2
-    #--chrom chr1
-    #--chr-lengths create_beds/hg38_chrlens.txt
+time ./coverage.sh -i /scratch/genomics/coverage/SRS290927.bam -o /scratch/genomics/coverage/SRS290927.cov #-s 4 -p 4
 
 #samtools coverage  -r chr6 /nvme/SRS290927.bam
 
