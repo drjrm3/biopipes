@@ -4,7 +4,8 @@
 python3 coverage.py \
     --input-bamfile /nvme/SRS290927.bam \
     --output-coverage-file SRS290927.coverage \
-    --chrom chr1
+    --proces 2
+    #--chrom chr1
     #--chr-lengths create_beds/hg38_chrlens.txt
 
 #samtools coverage  -r chr6 /nvme/SRS290927.bam

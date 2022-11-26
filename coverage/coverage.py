@@ -24,7 +24,7 @@ def get_args():
                         help="Input bamfile to use.")
     parser.add_argument("-o", "--output-coverage-file", type=str, required=True,
                         help="Output coverage file.")
-    parser.add_argument("-c", "--chrom", type=str, required=True,
+    parser.add_argument("-c", "--chrom", type=str,
                         help="Chromosome to calculate on.")
     parser.add_argument("-p", "--processes", type=int, default=2,
                         help="Number of processes to use.")
@@ -104,18 +104,17 @@ def gen_coverage(bamfile, outfile, chrom_lens, processes):
     # For now set all regions to just chromosomes.
     regions = chrom_lens.keys()
 
-    rc, stdout = samtools_depth(f"-@ 2 -r chr1 {bamfile}")
-    with open("samtools_out", 'w') as fout:
-        print(stdout, file=fout)
-    return 
-
+    # Build samtools depth commands list.
     args = []
-    for region in ["chrM", "chr9"]:
-        args.append([f"-a -r {region} {bamfile}"])
+    for region in regions:
+        args.append([f"-@ 2 -r {region} {bamfile}"])
 
+    # Run them all.
     with multiprocessing.Pool(processes=processes) as pool:
-        output = pool.starmap(samtools_depth, args)
-        print(output)
+        procs = pool.starmap(samtools_depth, args)
+        with open(outfile, "w") as fout:
+            for proc in procs:
+                print(proc[1], file=fout)
 
 
 def main():
@@ -126,14 +125,13 @@ def main():
 
     bamfile = pysam.AlignmentFile(args.input_bamfile, "rb")
     filter_list=["chrUn", "_alt", "_random"]
+
     # TODO: Pass args.chrom to get_chrom_lens and only generate {chrom: length}.
     chrom_lens = get_chrom_lens(bamfile, filter_list=filter_list)
 
     gen_coverage(args.input_bamfile, args.output_coverage_file, chrom_lens,
                  args.processes)
 
-    # TODO: Go through 'width' and do 'samtools depth' on each chunksize.
-    #       - Is there a pysam module that would work for this?
 
 if __name__ == "__main__":
     main()
