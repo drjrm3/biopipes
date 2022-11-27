@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-time ./coverage.sh -i /scratch/genomics/coverage/SRS290927.bam -o /scratch/genomics/coverage/SRS290927.cov #-s 4 -p 4
+time ./coverage.sh \
+    -i /scratch/genomics/coverage/SRS290927.bam \
+    -b /home/drjrm3/code/biopipes/coverage/create_beds/hg38_1e3.bed \
+    -o /scratch/genomics/coverage/SRS290927.1e3.cov 
 
 exit 
 for INP in /scratch/genomics/coverage/*.tmp; do

@@ -2,8 +2,8 @@
 
 # Default values.
 BAMFILE=""
+BEDFILE=""
 COVFILE=""
-STHREADS=2
 PROCS=$(cat /proc/cpuinfo | grep proc | wc -l | awk '{print $1/2}')
 CHROM_FILTERS="chrUn _alt _random"
 
@@ -11,8 +11,8 @@ CHROM_FILTERS="chrUn _alt _random"
 usage() {
 cat << EOF
 Usage: coverage.sh -i | --input-bam  BAMFILE
+                   -b | --bed-file   BEDFILE
                    -o | --output-cov COVFILE
-                  [-s | --samtools-threads STHREADS (default: $STHREADS)] 
                   [-p | --processes PROCS (default: $PROCS)]"
                   [-f | --filters CHROM_FILTERS (default: "$CHROM_FILTERS")]
                   [-h | --help]
@@ -22,8 +22,8 @@ EOF
 # Get parse arguments and validate them.
 PARSED_ARGUMENTS=$(getopt -a \
     -n coverage.sh \
-    -o i:o:s:p:h \
-    --long input-bam:,output-coverage:,samtools-threads:,processes:,help \
+    -o i:b:o:p:h \
+    --long input-bam:,bed-file:,output-coverage:,processes:,help \
     -- "$@")
 VALID_ARGUMENTS=$?
 if [ "$VALID_ARGUMENTS" != "0" ]; then
@@ -36,8 +36,8 @@ eval set -- "$PARSED_ARGUMENTS"
 while [[ ! -z $1 ]]; do
     case "$1" in
         -i | --input-bam)        BAMFILE="$2"        ; shift 2 ;;
+        -b | --bed-file)         BEDFILE="$2"        ; shift 2 ;;
         -o | --output-cov)       COVFILE="$2"        ; shift 2 ;;
-        -s | --samtools-threads) STHREADS="$2"       ; shift 2 ;; 
         -f | --filters)          CHROM_FILTERS="$2"  ; shift 2 ;; 
         -p | --processes)        PROCS="$2"          ; shift 2 ;; 
         -h | --help) usage && exit 1 ;;
@@ -49,18 +49,9 @@ done
 
 # Check inputs.
 [ -f $BAMFILE ] || { >&2 echo "ERROR: Input BAMFILE not given." && usage && exit 1; }
+[ -f $BEDFILE ] || { >&2 echo "ERROR: Input BEDFILE not given." && usage && exit 1; }
 [ $COVFILE ]    || { >&2 echo "ERROR: COVFILE not given."       && usage && exit 1; }
 
 # Process chroms.
-while read CHROM; do
-    FILTER=""
-    for CHROM_FILTER in $CHROM_FILTERS; do
-        if [[ "$CHROM" == *"$CHROM_FILTER"* ]]; then FILTER="TRUE"; fi
-    done
-    if [[ $FILTER ]]; then continue; fi
-
-    echo "samtools depth -@ $STHREADS -r $CHROM $BAMFILE > $COVFILE.$CHROM.tmp"
-done < <(samtools view -H $BAMFILE | grep '@SQ' | awk '{print $2}' | sed 's/SN://g') > cmds.txt
-
-parallel -j $PROCS < cmds.txt
+samtools bedcov $BEDFILE $BAMFILE > $COVFILE
 
