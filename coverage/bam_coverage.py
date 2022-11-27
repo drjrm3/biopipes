@@ -5,12 +5,11 @@ See https://pysam.readthedocs.io/en/latest/api.html for reference.
 """
 
 import argparse
-import pysam
 import multiprocessing
 import shlex
 import subprocess
-import sys
-import numpy as np
+
+from coverage_utils import get_chrom_lens
 
 def get_args():
     """ Get CLI arguments.
@@ -33,34 +32,6 @@ def get_args():
 
     return args
 
-def get_chrom_lens(bamfile, filter_list=[], only_chrom=""):
-    """ Get chromosome lengths from bamfile header.
-    Args:
-        bamfile (pysam.AlignmentFile): Bamfile object from pysam.
-        filter_list (list): List of strings to filter out ('alt', 'Un', 'etc').
-        only_chrom (str): Only use one chromosome.
-    Returns:
-        chrom_lens (dict): Dictionary of chromosome names and lengths.
-    """
-
-    chrom_lens = {}
-
-    # TODO: Better way to go through lengths than converting to str and parsing?
-    for line in str(bamfile.header).splitlines():
-        if "@SQ" not in line:
-            continue
-        words = line.split()
-        chrom = words[1].split(':')[1]
-        if only_chrom and only_chrom != chrom:
-            continue
-
-        # Filter out strings in filter list from chrom name.
-        if any([fstr in chrom for fstr in filter_list]):
-            continue
-        length = int(words[2].split(':')[1])
-        chrom_lens[chrom] = length
-
-    return chrom_lens
 
 def samtools_depth(args):
     """ Call samtools depth {args}.
@@ -74,19 +45,14 @@ def samtools_depth(args):
 
     command = shlex.split(f"samtools depth {args}")
 
-    proc = subprocess.run(command, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, shell=False)
+    proc = subprocess.run(command, shell=False, check=True,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
 
     stdout_str = ""
     if proc.stdout:
         stdout_str = proc.stdout.decode("utf-8")
     return_code = proc.returncode
-
-    # TODO: Optimize packed format here later
-    # chrom.pos:
-    #  - chrom:  5 bits (max 32, 1-22, X, Y, M)
-    #  - pos:   28 bits (max ~536M, chr1 ~ 270M)
-    #  - depth: 20 bits (max ~1M)
 
     return return_code, stdout_str
 
@@ -121,11 +87,11 @@ def main():
     """ Main entry point. """
     args = get_args()
 
-    bamfile = pysam.AlignmentFile(args.input_bamfile, "rb")
+    #bamfile = pysam.AlignmentFile(args.input_bamfile, "rb")
     filter_list=["chrUn", "_alt", "_random"]
 
     # TODO: Pass args.chrom to get_chrom_lens and only generate {chrom: length}.
-    chrom_lens = get_chrom_lens(bamfile, filter_list=filter_list)
+    chrom_lens = get_chrom_lens(args.input_bamfile, filter_list=filter_list)
 
     gen_coverage(args.input_bamfile, args.output_coverage_file, chrom_lens,
                  args.processes)

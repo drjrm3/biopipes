@@ -2,3 +2,4 @@
 cmds.txt
 *.out
 *.coverage
+*.npz
